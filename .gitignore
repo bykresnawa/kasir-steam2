@@ -7,7 +7,7 @@ node_modules/
 .env.*.local
 
 # Firebase config
-firebase-config.js
+assets/js/config/firebase-config.js
 
 # Log files
 *.log

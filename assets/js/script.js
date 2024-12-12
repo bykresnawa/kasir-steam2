@@ -1,12 +1,21 @@
 // Global variables
 let currentUser = null;
 let transactions = [];
+let isOnline = navigator.onLine;
+let pendingTransactions = [];
 
 // Initialize the application
 function initializeApp() {
-    loadTransactionsFromStorage();
-    updateReports();
-    setupEventListeners();
+    handleOnlineStatus();
+    const savedTransactions = localStorage.getItem('pendingTransactions');
+    if (savedTransactions) {
+        try {
+            pendingTransactions = JSON.parse(savedTransactions);
+        } catch (error) {
+            console.error('Error loading pending transactions:', error);
+            localStorage.removeItem('pendingTransactions');
+        }
+    }
 }
 
 // Event Listeners
@@ -58,32 +67,65 @@ function updateSubTypes() {
 }
 
 // Transaction Functions
-function processTransaction() {
-    const vehicleType = document.getElementById('vehicleType').value;
-    const vehicleSubTypeStr = document.getElementById('vehicleSubType').value;
-    
-    if (!vehicleType || !vehicleSubTypeStr) {
-        const errorMessage = document.getElementById('errorMessage');
-        errorMessage.textContent = 'Please select a vehicle type and model';
-        errorMessage.style.display = 'block';
-        return;
-    }
+async function processTransaction(transactionData) {
+    if (!transactionData) return;
 
-    const vehicleSubType = JSON.parse(vehicleSubTypeStr);
     const transaction = {
         id: Date.now(),
-        date: new Date().toISOString(),
-        vehicleType: vehicleType,
-        vehicleModel: vehicleSubType.model,
-        price: vehicleSubType.price,
-        cashier: currentUser.username
+        ...transactionData,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        cashier: currentUser?.uid,
+        status: 'pending'
     };
 
-    transactions.push(transaction);
-    saveTransactionsToStorage();
-    updateReports();
-    showReceipt(transaction);
-    resetTransactionForm();
+    try {
+        if (isOnline) {
+            await saveTransactionToFirestore(transaction);
+        } else {
+            savePendingTransaction(transaction);
+        }
+        
+        updateUI(transaction);
+        showReceipt(transaction);
+        showToast('Transaksi berhasil', 'success');
+    } catch (error) {
+        handleError(error);
+    }
+}
+
+async function saveTransactionToFirestore(transaction) {
+    try {
+        await db.collection('transactions').add(transaction);
+        console.log('Transaction saved to Firestore:', transaction.id);
+    } catch (error) {
+        throw new Error('Failed to save transaction: ' + error.message);
+    }
+}
+
+function savePendingTransaction(transaction) {
+    pendingTransactions.push(transaction);
+    localStorage.setItem('pendingTransactions', JSON.stringify(pendingTransactions));
+    console.log('Transaction saved locally:', transaction.id);
+}
+
+async function syncPendingTransactions() {
+    if (!pendingTransactions.length) return;
+
+    const batch = db.batch();
+    
+    try {
+        pendingTransactions.forEach(transaction => {
+            const ref = db.collection('transactions').doc();
+            batch.set(ref, transaction);
+        });
+
+        await batch.commit();
+        pendingTransactions = [];
+        localStorage.removeItem('pendingTransactions');
+        showToast('Transaksi tersinkronisasi', 'success');
+    } catch (error) {
+        handleError(error);
+    }
 }
 
 // Fungsi untuk reset form transaksi
@@ -242,4 +284,43 @@ window.onunhandledrejection = function(event) {
         errorMessage.textContent = 'Terjadi kesalahan. Silakan muat ulang halaman.';
         errorMessage.style.display = 'block';
     }
-}; 
+};
+
+// Network status monitoring
+window.addEventListener('online', handleOnlineStatus);
+window.addEventListener('offline', handleOnlineStatus);
+
+function handleOnlineStatus() {
+    isOnline = navigator.onLine;
+    if (isOnline) {
+        showToast('Koneksi tersedia', 'success');
+        syncPendingTransactions();
+    } else {
+        showToast('Aplikasi dalam mode offline', 'warning');
+    }
+}
+
+// Error handling
+function handleError(error) {
+    console.error('Error:', error);
+    showToast(error.message, 'error');
+}
+
+// UI updates
+function updateUI(transaction) {
+    updateReports();
+    resetTransactionForm();
+}
+
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    
+    const container = document.getElementById('toastContainer');
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+} 
