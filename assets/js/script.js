@@ -216,4 +216,30 @@ function showReceipt(transaction) {
 // Panggil fungsi ini saat aplikasi dimuat
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
-}); 
+});
+
+// Add global error handler
+window.onerror = function(msg, url, lineNo, columnNo, error) {
+    console.error('Global error:', { msg, url, lineNo, columnNo, error });
+    
+    // Show user-friendly error message
+    const errorMessage = document.getElementById('errorMessage');
+    if (errorMessage) {
+        errorMessage.textContent = 'Terjadi kesalahan. Silakan muat ulang halaman.';
+        errorMessage.style.display = 'block';
+    }
+    
+    return false;
+};
+
+// Add unhandled promise rejection handler
+window.onunhandledrejection = function(event) {
+    console.error('Unhandled promise rejection:', event.reason);
+    
+    // Show user-friendly error message
+    const errorMessage = document.getElementById('errorMessage');
+    if (errorMessage) {
+        errorMessage.textContent = 'Terjadi kesalahan. Silakan muat ulang halaman.';
+        errorMessage.style.display = 'block';
+    }
+}; 

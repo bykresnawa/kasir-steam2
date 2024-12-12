@@ -4,36 +4,73 @@ const users = [
     { username: 'kasir1', password: 'kasir123', role: 'employee' }
 ];
 
-function login() {
+// Update login function
+async function login() {
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     const errorDiv = document.getElementById('loginError');
+    errorDiv.textContent = ''; // Reset error message
     
-    if (!username || !password) {
-        errorDiv.textContent = 'Please enter both username and password';
-        return;
-    }
-    
-    const user = users.find(u => u.username === username && u.password === password);
-    
-    if (user) {
+    try {
+        // Convert username to email if needed
+        const email = username.includes('@') ? username : `${username}@steamwash.com`;
+        
+        // Attempt to sign in
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        
+        // Get additional user data from Firestore
+        const userDoc = await db.collection('users').doc(userCredential.user.uid).get();
+        
+        if (!userDoc.exists) {
+            // Create user document if it doesn't exist
+            await db.collection('users').doc(userCredential.user.uid).set({
+                username: username,
+                email: email,
+                role: 'employee', // Default role
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+        
+        const userData = userDoc.exists ? userDoc.data() : { role: 'employee' };
+        
+        // Set current user
         currentUser = {
-            username: user.username,
-            role: user.role
+            uid: userCredential.user.uid,
+            username: username,
+            email: email,
+            role: userData.role
         };
         
+        // Save to localStorage
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        
+        // Update UI
         document.getElementById('loginSection').style.display = 'none';
         document.getElementById('appContainer').style.display = 'flex';
+        document.getElementById('adminNav').style.display = 
+            userData.role === 'admin' ? 'block' : 'none';
         
-        // Show/hide admin features
-        const adminNav = document.getElementById('adminNav');
-        adminNav.style.display = user.role === 'admin' ? 'block' : 'none';
-        
-        // Initialize the app
+        // Initialize app
         initializeApp();
-    } else {
-        errorDiv.textContent = 'Invalid username or password';
+        
+    } catch (error) {
+        console.error('Login error:', error);
+        errorDiv.textContent = getErrorMessage(error);
+    }
+}
+
+// Helper function to get user-friendly error messages
+function getErrorMessage(error) {
+    switch (error.code) {
+        case 'auth/invalid-email':
+            return 'Format email tidak valid';
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+            return 'Username atau password salah';
+        case 'auth/too-many-requests':
+            return 'Terlalu banyak percobaan login. Silakan coba lagi nanti';
+        default:
+            return 'Terjadi kesalahan. Silakan coba lagi';
     }
 }
 

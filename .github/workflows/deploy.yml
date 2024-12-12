@@ -1,1 +1,77 @@
- 
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Create necessary directories
+        run: |
+          mkdir -p assets/js
+          
+      - name: Create Firebase Config
+        env:
+          FIREBASE_CONFIG: ${{ secrets.FIREBASE_CONFIG }}
+        run: |
+          if [ -z "$FIREBASE_CONFIG" ]; then
+            echo "Warning: FIREBASE_CONFIG secret is not set"
+            echo "// Firebase configuration placeholder" > assets/js/firebase-config.js
+          else
+            echo "$FIREBASE_CONFIG" > assets/js/firebase-config.js
+          fi
+
+      - name: Build and prepare
+        run: |
+          # Add any build steps here if needed
+          # For example: npm install && npm run build
+          
+          # Ensure all directories exist
+          mkdir -p dist
+
+          # Copy necessary files to dist
+          cp -r assets dist/
+          cp index.html dist/
+          cp manifest.json dist/
+          cp sw.js dist/
+          cp 404.html dist/
+          
+          # Create .nojekyll file to prevent Jekyll processing
+          touch dist/.nojekyll
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          force_orphan: true
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: 'Deploy to GitHub Pages'
+          enable_jekyll: false
+
+      - name: Handle Errors
+        if: failure()
+        run: |
+          echo "Deployment failed. Please check the following:"
+          echo "1. Verify GITHUB_TOKEN secret is set"
+          echo "2. Verify FIREBASE_CONFIG secret is set"
+          echo "3. Check if repository has GitHub Pages enabled"
+          echo "4. Ensure main branch is protected" 
