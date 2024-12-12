@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Steam Wash Cashier</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#2c3e50">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Steam Wash">
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="assets/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="assets/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-180x180.png">
+    
+    <!-- Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <!-- Login Section -->
+    <div id="loginSection" class="login-container">
+        <div class="login-form">
+            <div class="logo">
+                <i class="fas fa-car-wash"></i>
+                <h2>Steam Berkah 2 Putra</h2>
+            </div>
+            <form onsubmit="event.preventDefault(); login();">
+                <div class="form-group">
+                    <input type="text" id="username" placeholder="Username" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="password" placeholder="Password" required>
+                </div>
+                <button type="submit" class="btn-primary">Login</button>
+                <div id="loginError" class="error-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="appContainer" class="container" style="display: none;">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="logo">
+                <i class="fas fa-car-wash"></i>
+                <h2>Steam Berkah 2 Putra</h2>
+            </div>
+            <nav id="navigation">
+                <a href="#" class="active" onclick="showSection('transaction')">
+                    <i class="fas fa-cash-register"></i> Transaction
+                </a>
+                <a href="#" onclick="showSection('daily')">
+                    <i class="fas fa-calendar-day"></i> Daily Report
+                </a>
+                <div id="adminNav" style="display: none;">
+                    <a href="#" onclick="showSection('weekly')">
+                        <i class="fas fa-calendar-week"></i> Weekly Report
+                    </a>
+                    <a href="#" onclick="showSection('monthly')">
+                        <i class="fas fa-calendar-alt"></i> Monthly Report
+                    </a>
+                    <a href="#" onclick="showSection('vehicles')">
+                        <i class="fas fa-cog"></i> Vehicle Management
+                    </a>
+                </div>
+                <a href="#" onclick="logout()" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <main>
+            <!-- Transaction Section -->
+            <section id="transaction" class="active">
+                <h2>New Transaction</h2>
+                <div class="transaction-form">
+                    <div class="form-group">
+                        <label>Vehicle Type</label>
+                        <select id="vehicleType" onchange="updateVehicleDisplay()" required>
+                            <option value="">Select Type</option>
+                            <option value="car">Mobil</option>
+                            <option value="motorcycle">Motor</option>
+                        </select>
+                    </div>
+                    
+                    <div id="vehicleDisplay" class="vehicle-display"></div>
+                    
+                    <input type="hidden" id="vehicleSubType">
+                    <div id="errorMessage" class="error-message" style="display: none;"></div>
+                    <button onclick="processTransaction()" class="btn-primary">Process Transaction</button>
+                </div>
+            </section>
+
+            <!-- Daily Report Section -->
+            <section id="daily">
+                <h2>Daily Report</h2>
+                <div class="report-card">
+                    <h3>Today's Income</h3>
+                    <p id="dailyTotal">Rp 0</p>
+                </div>
+                <div class="transaction-list" id="dailyTransactions"></div>
+            </section>
+
+            <!-- Weekly Report Section -->
+            <section id="weekly">
+                <h2>Weekly Report</h2>
+                <div class="report-card">
+                    <h3>This Week's Income</h3>
+                    <p id="weeklyTotal">Rp 0</p>
+                </div>
+                <div class="transaction-list" id="weeklyTransactions"></div>
+            </section>
+
+            <!-- Monthly Report Section -->
+            <section id="monthly">
+                <h2>Monthly Report</h2>
+                <div class="report-card">
+                    <h3>This Month's Income</h3>
+                    <p id="monthlyTotal">Rp 0</p>
+                </div>
+                <div class="transaction-list" id="monthlyTransactions"></div>
+            </section>
+
+            <!-- Vehicle Management Section -->
+            <section id="vehicles">
+                <h2>Vehicle Management</h2>
+                <div class="vehicle-form">
+                    <h3>Add New Vehicle Type</h3>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="newVehicleCategory" required>
+                            <option value="car">Mobil</option>
+                            <option value="motorcycle">Motor</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Model/Size</label>
+                        <input type="text" id="newVehicleModel" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <input type="text" id="newVehicleDescription">
+                    </div>
+                    <div class="form-group">
+                        <label>Price</label>
+                        <input type="number" id="newVehiclePrice" required>
+                    </div>
+                    <button onclick="addVehicleType()" class="btn-primary">Add Vehicle Type</button>
+                </div>
+                <div class="vehicle-list">
+                    <h3>Current Vehicle Types</h3>
+                    <div id="vehiclesList"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Receipt Modal -->
+    <div id="receiptModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="receipt"></div>
+            <button onclick="printReceipt()" class="btn-primary">Print Receipt</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="assets/js/auth.js"></script>
+    <script src="assets/js/vehicles.js"></script>
+    <script src="assets/js/script.js"></script>
+
+    <!-- Initialize App -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            initializeApp();
+        });
+    </script>
+
+    <!-- Add to Home Screen Instructions -->
+    <div id="installPrompt" class="install-prompt" style="display: none;">
+        <p>Install aplikasi ini di home screen untuk akses lebih mudah!</p>
+        <button id="installButton">Install</button>
+        <button onclick="closeInstallPrompt()">Nanti Saja</button>
+    </div>
+
+    <script>
+    let deferredPrompt;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        document.getElementById('installPrompt').style.display = 'block';
+    });
+
+    document.getElementById('installButton').addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            deferredPrompt = null;
+            document.getElementById('installPrompt').style.display = 'none';
+        }
+    });
+
+    function closeInstallPrompt() {
+        document.getElementById('installPrompt').style.display = 'none';
+    }
+    </script>
+</body>
+</html>
